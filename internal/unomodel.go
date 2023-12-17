@@ -21,6 +21,15 @@ func (cs *UnoCardSet) AddCard(uc UnoCard) bool {
 	return ok
 }
 
+// 校验卡牌合法性
+func (cs *UnoCardSet) CheckCard(card UnoCard) bool {
+	value, ok := cs.Cards[card.CardIndex]
+	if ok {
+		ok = (card.CardName == value.CardName && card.CardType == value.CardName)
+	}
+	return ok
+}
+
 // 移除卡牌
 func (cs *UnoCardSet) RemoveCard(index int) (UnoCard, bool) {
 	value, ok := cs.Cards[index]
