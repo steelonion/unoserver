@@ -42,36 +42,46 @@ func (cs *UnoCardSet) RemoveCard(index int) (UnoCard, bool) {
 type UnoPlayer struct {
 	CardSet UnoCardSet //玩家手牌
 	Name    string     //玩家名称
-	Index   int        //玩家编号
+	Index   int        //玩家顺序
+	ID      int        //玩家ID
 }
 
 // UnoGame 表示一个 UNO 游戏。
 type UnoGame struct {
-	Players        []UnoPlayer // 参与游戏的玩家
-	CurrentPlayers UnoPlayer   // 当前准备出牌的玩家
-	DiscardPile    UnoCardSet  // 弃牌堆
-	RemineCard     UnoCardSet  // 剩余的卡牌堆
-	LastCard       UnoCard     // 上一张出牌的卡片
-	TotalAddCount  int         // 总共需要累积的牌数
-	IsForword      bool        // 是否为正向顺序
+	Players        map[int]UnoPlayer // 参与游戏的玩家
+	CurrentPlayers UnoPlayer         // 当前准备出牌的玩家
+	DiscardPile    UnoCardSet        // 弃牌堆
+	RemineCard     UnoCardSet        // 剩余的卡牌堆
+	LastCard       UnoCard           // 上一张出牌的卡片
+	TotalAddCount  int               // 总共需要累积的牌数
+	IsForword      bool              // 是否为正向顺序
 }
 
 // 初始化游戏 移除所有玩家 重制牌堆
-func (*UnoGame) Init() {
+func (g *UnoGame) Init() {
 
 }
 
 // 添加玩家
-func (*UnoGame) AddPlayer() {
+func (g *UnoGame) AddPlayer() {
 
 }
 
 // 发牌
-func (*UnoGame) DealCard() {
+func (g *UnoGame) DealCard() {
 
 }
 
 // 出牌
-func (*UnoGame) PlayCard(uc UnoCard) {
-
+func (g *UnoGame) PlayCard(player int, uc UnoCard) {
+	p := g.Players[player]
+	//移除卡牌
+	if p.CardSet.CheckCard(uc) {
+		card, ok := p.CardSet.RemoveCard(uc.CardIndex)
+		if ok {
+			g.LastCard = card
+			//将牌放入弃牌堆中
+			g.DiscardPile.AddCard(card)
+		}
+	}
 }
