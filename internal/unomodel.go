@@ -2,25 +2,67 @@ package internal
 
 // 卡牌结构体
 type UnoCard struct {
-	CardType string
-	CardName string
+	CardIndex int    //卡牌编号
+	CardType  string //卡牌类型
+	CardName  string //卡牌名称
 }
 
 // 卡牌堆
 type UnoCardSet struct {
-	Cards []UnoCard
+	Cards map[int]UnoCard
+}
+
+// 新增卡牌
+func (cs *UnoCardSet) AddCard(uc UnoCard) bool {
+	_, ok := cs.Cards[uc.CardIndex]
+	if ok {
+		cs.Cards[uc.CardIndex] = uc
+	}
+	return ok
+}
+
+// 移除卡牌
+func (cs *UnoCardSet) RemoveCard(index int) (UnoCard, bool) {
+	value, ok := cs.Cards[index]
+	if ok {
+		delete(cs.Cards, index)
+	}
+	return value, ok
 }
 
 type UnoPlayer struct {
-	CardSet UnoCardSet
-	Name    string
+	CardSet UnoCardSet //玩家手牌
+	Name    string     //玩家名称
+	Index   int        //玩家编号
 }
 
 // UnoGame 表示一个 UNO 游戏。
 type UnoGame struct {
-	Players       []UnoPlayer // 参与游戏的玩家
-	RemineCard    UnoCardSet  // 剩余的卡牌堆
-	LastCard      UnoCard     // 上一张出牌的卡片
-	TotalAddCount int         // 总共需要累积的牌数
-	IsForword     bool        // 是否为正向顺序
+	Players        []UnoPlayer // 参与游戏的玩家
+	CurrentPlayers UnoPlayer   // 当前准备出牌的玩家
+	DiscardPile    UnoCardSet  // 弃牌堆
+	RemineCard     UnoCardSet  // 剩余的卡牌堆
+	LastCard       UnoCard     // 上一张出牌的卡片
+	TotalAddCount  int         // 总共需要累积的牌数
+	IsForword      bool        // 是否为正向顺序
+}
+
+// 初始化游戏 移除所有玩家 重制牌堆
+func (*UnoGame) Init() {
+
+}
+
+// 添加玩家
+func (*UnoGame) AddPlayer() {
+
+}
+
+// 发牌
+func (*UnoGame) DealCard() {
+
+}
+
+// 出牌
+func (*UnoGame) PlayCard(uc UnoCard) {
+
 }
