@@ -82,7 +82,15 @@ type UnoGame struct {
 
 // 初始化游戏 移除所有玩家 重置牌堆
 func (g *UnoGame) Init() {
-
+	g.DiscardPile = UnoCardSet{}
+	g.RemineCard = UnoCardSet{}
+	g.LastCard = nil
+	g.IsForword = true
+	g.TotalAddCount = 0
+	g.CurrentPlayers = 0
+	for k := range g.Players {
+		delete(g.Players, k)
+	}
 }
 
 // 添加玩家
