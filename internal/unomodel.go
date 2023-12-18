@@ -72,7 +72,7 @@ type UnoPlayer struct {
 // UnoGame 表示一个 UNO 游戏。
 type UnoGame struct {
 	Players        map[int]UnoPlayer // 参与游戏的玩家
-	CurrentPlayers UnoPlayer         // 当前准备出牌的玩家
+	CurrentPlayers int               // 当前准备出牌的玩家
 	DiscardPile    UnoCardSet        // 弃牌堆
 	RemineCard     UnoCardSet        // 剩余的卡牌堆
 	LastCard       *UnoCard          // 上一张出牌的卡片
@@ -90,8 +90,13 @@ func (g *UnoGame) AddPlayer() {
 
 }
 
+// 切换到下一个玩家
+func (g *UnoGame) NextPlayer() {
+
+}
+
 // 发牌
-func (g *UnoGame) DealCard() {
+func (g *UnoGame) DealCard(UnoPlayer) {
 
 }
 
@@ -114,6 +119,24 @@ func (g *UnoGame) CheckCardLegel(uc UnoCard) bool {
 	}
 
 	return false
+}
+
+// 结算出牌效果
+func (g *UnoGame) Effect(uc UnoCard) {
+	switch uc.Type {
+	case CardType(WildDrawFour):
+		g.TotalAddCount += 4
+	case CardType(Wild):
+	case CardType(Number):
+		g.TotalAddCount += uc.Value
+	case CardType(DrawTwo):
+		g.TotalAddCount += 2
+	case CardType(Reverse):
+		g.IsForword = !g.IsForword
+	case CardType(Skip):
+		g.NextPlayer()
+	}
+	g.NextPlayer()
 }
 
 // 出牌
