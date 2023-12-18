@@ -1,10 +1,33 @@
 package internal
 
+// CardColor 表示卡牌的颜色
+type CardColor int
+
+const (
+	Red CardColor = iota
+	Yellow
+	Green
+	Blue
+)
+
+// CardType 表示卡牌的类型
+type CardType int
+
+const (
+	Number CardType = iota
+	Reverse
+	Skip
+	DrawTwo
+	Wild
+	WildDrawFour
+)
+
 // 卡牌结构体
 type UnoCard struct {
-	CardIndex int    //卡牌编号
-	CardType  string //卡牌类型
-	CardName  string //卡牌名称
+	CardIndex int       //卡牌编号
+	Color     CardColor //卡牌颜色
+	Type      CardType  //卡牌类型
+	Value     int       //卡牌值
 }
 
 // 卡牌堆
@@ -25,7 +48,7 @@ func (cs *UnoCardSet) AddCard(uc UnoCard) bool {
 func (cs *UnoCardSet) CheckCard(card UnoCard) bool {
 	value, ok := cs.Cards[card.CardIndex]
 	if ok {
-		ok = (card.CardName == value.CardName && card.CardType == value.CardName)
+		ok = (card.Value == value.Value && card.Color == value.Color && card.Type == value.Type)
 	}
 	return ok
 }
@@ -52,12 +75,12 @@ type UnoGame struct {
 	CurrentPlayers UnoPlayer         // 当前准备出牌的玩家
 	DiscardPile    UnoCardSet        // 弃牌堆
 	RemineCard     UnoCardSet        // 剩余的卡牌堆
-	LastCard       UnoCard           // 上一张出牌的卡片
+	LastCard       *UnoCard          // 上一张出牌的卡片
 	TotalAddCount  int               // 总共需要累积的牌数
 	IsForword      bool              // 是否为正向顺序
 }
 
-// 初始化游戏 移除所有玩家 重制牌堆
+// 初始化游戏 移除所有玩家 重置牌堆
 func (g *UnoGame) Init() {
 
 }
@@ -72,16 +95,39 @@ func (g *UnoGame) DealCard() {
 
 }
 
+// 检查牌是否符合出牌规则
+func (g *UnoGame) CheckCardLegel(uc UnoCard) bool {
+	if g.LastCard == nil {
+		return true
+	}
+
+	// 判断颜色是否匹配
+	if uc.Color != g.LastCard.Color && uc.Type != Wild && uc.Type != WildDrawFour {
+		return false
+	}
+
+	// 判断数字或类型是否匹配
+	if uc.Type != Wild && uc.Type != WildDrawFour {
+		if uc.Type == g.LastCard.Type || uc.Value == g.LastCard.Value {
+			return true
+		}
+	}
+
+	return false
+}
+
 // 出牌
 func (g *UnoGame) PlayCard(player int, uc UnoCard) {
 	p := g.Players[player]
-	//移除卡牌
 	if p.CardSet.CheckCard(uc) {
-		card, ok := p.CardSet.RemoveCard(uc.CardIndex)
-		if ok {
-			g.LastCard = card
-			//将牌放入弃牌堆中
-			g.DiscardPile.AddCard(card)
+		// 检查出牌是否符合规则
+		if g.CheckCardLegel(uc) {
+			card, ok := p.CardSet.RemoveCard(uc.CardIndex)
+			if ok {
+				g.LastCard = &card
+				//将牌放入弃牌堆中
+				g.DiscardPile.AddCard(card)
+			}
 		}
 	}
 }
