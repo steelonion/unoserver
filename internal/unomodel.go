@@ -1,6 +1,9 @@
 package internal
 
-import "math/rand"
+import (
+	"errors"
+	"math/rand"
+)
 
 // CardColor 表示卡牌的颜色
 type CardColor int
@@ -186,7 +189,7 @@ func (g *UnoGame) dealCard(p *UnoPlayer) {
 }
 
 // 检查牌是否符合出牌规则
-func (g *UnoGame) CheckCardLegel(uc *UnoCard) bool {
+func (g *UnoGame) CheckCardLegal(uc *UnoCard) bool {
 	if g.LastCard == nil {
 		return true
 	}
@@ -232,17 +235,24 @@ func (g *UnoGame) Skip(player int) {
 }
 
 // 出牌
-func (g *UnoGame) PlayCard(player int, uc *UnoCard) {
-	p := g.Players[player]
-	if p.CardSet.CheckCard(uc) {
-		// 检查出牌是否符合规则
-		if g.CheckCardLegel(uc) {
-			card, ok := p.CardSet.RemoveCard(uc.CardIndex)
-			if ok {
-				g.LastCard = &card
-				//将牌放入弃牌堆中
-				g.DiscardPile.AddCard(card)
-			}
-		}
+func (g *UnoGame) PlayCard(player int, uc *UnoCard) error {
+	if g.CurrentPlayer != player {
+		return errors.New("not your turn")
 	}
+	p := g.Players[player]
+	// 检查卡牌是否存在
+	if !p.CardSet.CheckCard(uc) {
+		return errors.New("card not found")
+	}
+	// 检查出牌是否符合规则
+	if !g.CheckCardLegal(uc) {
+		return errors.New("illegal card")
+	}
+	card, ok := p.CardSet.RemoveCard(uc.CardIndex)
+	if ok {
+		g.LastCard = &card
+		//将牌放入弃牌堆中
+		g.DiscardPile.AddCard(card)
+	}
+	return nil
 }
