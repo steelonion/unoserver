@@ -71,26 +71,54 @@ type UnoPlayer struct {
 
 // UnoGame 表示一个 UNO 游戏。
 type UnoGame struct {
-	Players        map[int]UnoPlayer // 参与游戏的玩家
-	CurrentPlayers int               // 当前准备出牌的玩家
-	DiscardPile    UnoCardSet        // 弃牌堆
-	RemineCard     UnoCardSet        // 剩余的卡牌堆
-	LastCard       *UnoCard          // 上一张出牌的卡片
-	TotalAddCount  int               // 总共需要累积的牌数
-	IsForword      bool              // 是否为正向顺序
+	Players       []UnoPlayer // 参与游戏的玩家
+	CurrentPlayer int         // 当前准备出牌的玩家
+	DiscardPile   UnoCardSet  // 弃牌堆
+	RemineCard    UnoCardSet  // 剩余的卡牌堆
+	LastCard      *UnoCard    // 上一张出牌的卡片
+	TotalAddCount int         // 总共需要累积的牌数
+	IsForword     bool        // 是否为正向顺序
+}
+
+func (s *UnoCardSet) initCardSetColor(color CardColor, carduid *int) {
+	// 加入数字牌
+	for i := 0; i < 10; i++ {
+		s.AddCard(UnoCard{Color: color, Type: CardType(Number), Value: i, CardIndex: *carduid})
+		*carduid++
+	}
+	for i := 1; i < 10; i++ {
+		s.AddCard(UnoCard{Color: color, Type: CardType(Number), Value: i, CardIndex: *carduid})
+		*carduid++
+	}
+	// 加入特殊牌
+
+	for i := 0; i < 2; i++ {
+		s.AddCard(UnoCard{Color: color, Type: CardType(Reverse), Value: i, CardIndex: *carduid})
+		*carduid++
+		s.AddCard(UnoCard{Color: color, Type: CardType(Skip), Value: i, CardIndex: *carduid})
+		*carduid++
+		s.AddCard(UnoCard{Color: color, Type: CardType(DrawTwo), Value: i, CardIndex: *carduid})
+		*carduid++
+	}
 }
 
 // 初始化游戏 移除所有玩家 重置牌堆
 func (g *UnoGame) Init() {
+	// 清空所有数据
 	g.DiscardPile = UnoCardSet{}
 	g.RemineCard = UnoCardSet{}
 	g.LastCard = nil
 	g.IsForword = true
 	g.TotalAddCount = 0
-	g.CurrentPlayers = 0
-	for k := range g.Players {
-		delete(g.Players, k)
-	}
+	g.CurrentPlayer = 0
+	g.Players = []UnoPlayer{}
+	//重置牌堆
+	carduid := 0
+	g.RemineCard.initCardSetColor(CardColor(Red), &carduid)
+	g.RemineCard.initCardSetColor(CardColor(Red), &carduid)
+	g.RemineCard.initCardSetColor(CardColor(Red), &carduid)
+	g.RemineCard.initCardSetColor(CardColor(Red), &carduid)
+
 }
 
 // 添加玩家
@@ -100,7 +128,12 @@ func (g *UnoGame) AddPlayer() {
 
 // 切换到下一个玩家
 func (g *UnoGame) NextPlayer() {
-
+	if g.IsForword {
+		g.CurrentPlayer++
+	}
+	if g.CurrentPlayer > len(g.Players) {
+		g.CurrentPlayer = 0
+	}
 }
 
 // 发牌
