@@ -4,7 +4,8 @@ package internal
 type CardColor int
 
 const (
-	Red CardColor = iota
+	None CardColor = iota
+	Red
 	Yellow
 	Green
 	Blue
@@ -80,7 +81,7 @@ type UnoGame struct {
 	IsForword     bool        // 是否为正向顺序
 }
 
-func (s *UnoCardSet) initCardSetColor(color CardColor, carduid *int) {
+func (s *UnoCardSet) initColor(color CardColor, carduid *int) {
 	// 加入数字牌
 	for i := 0; i < 10; i++ {
 		s.AddCard(UnoCard{Color: color, Type: CardType(Number), Value: i, CardIndex: *carduid})
@@ -91,13 +92,21 @@ func (s *UnoCardSet) initCardSetColor(color CardColor, carduid *int) {
 		*carduid++
 	}
 	// 加入特殊牌
-
 	for i := 0; i < 2; i++ {
 		s.AddCard(UnoCard{Color: color, Type: CardType(Reverse), Value: i, CardIndex: *carduid})
 		*carduid++
 		s.AddCard(UnoCard{Color: color, Type: CardType(Skip), Value: i, CardIndex: *carduid})
 		*carduid++
 		s.AddCard(UnoCard{Color: color, Type: CardType(DrawTwo), Value: i, CardIndex: *carduid})
+		*carduid++
+	}
+}
+
+func (s *UnoCardSet) initWild(carduid *int) {
+	for i := 0; i < 4; i++ {
+		s.AddCard(UnoCard{Color: CardColor(None), Type: CardType(Wild), Value: i, CardIndex: *carduid})
+		*carduid++
+		s.AddCard(UnoCard{Color: CardColor(None), Type: CardType(WildDrawFour), Value: i, CardIndex: *carduid})
 		*carduid++
 	}
 }
@@ -114,10 +123,11 @@ func (g *UnoGame) Init() {
 	g.Players = []UnoPlayer{}
 	//重置牌堆
 	carduid := 0
-	g.RemineCard.initCardSetColor(CardColor(Red), &carduid)
-	g.RemineCard.initCardSetColor(CardColor(Red), &carduid)
-	g.RemineCard.initCardSetColor(CardColor(Red), &carduid)
-	g.RemineCard.initCardSetColor(CardColor(Red), &carduid)
+	g.RemineCard.initColor(CardColor(Red), &carduid)
+	g.RemineCard.initColor(CardColor(Red), &carduid)
+	g.RemineCard.initColor(CardColor(Red), &carduid)
+	g.RemineCard.initColor(CardColor(Red), &carduid)
+	g.RemineCard.initWild(&carduid)
 
 }
 
