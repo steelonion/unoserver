@@ -36,13 +36,18 @@ type UnoCardSet struct {
 	Cards map[int]UnoCard
 }
 
+func (cs *UnoCardSet) New() *UnoCardSet {
+	cs.Cards = map[int]UnoCard{}
+	return cs
+}
+
 // 新增卡牌
 func (cs *UnoCardSet) AddCard(uc UnoCard) bool {
 	_, ok := cs.Cards[uc.CardIndex]
-	if ok {
+	if !ok {
 		cs.Cards[uc.CardIndex] = uc
 	}
-	return ok
+	return !ok
 }
 
 // 校验卡牌合法性
@@ -114,8 +119,8 @@ func (s *UnoCardSet) initWild(carduid *int) {
 // 初始化游戏 移除所有玩家 重置牌堆
 func (g *UnoGame) Init() {
 	// 清空所有数据
-	g.DiscardPile = UnoCardSet{}
-	g.RemineCard = UnoCardSet{}
+	g.DiscardPile = *(&UnoCardSet{}).New()
+	g.RemineCard = *(&UnoCardSet{}).New()
 	g.LastCard = nil
 	g.IsForword = true
 	g.TotalAddCount = 0
@@ -124,9 +129,9 @@ func (g *UnoGame) Init() {
 	//重置牌堆
 	carduid := 0
 	g.RemineCard.initColor(CardColor(Red), &carduid)
-	g.RemineCard.initColor(CardColor(Red), &carduid)
-	g.RemineCard.initColor(CardColor(Red), &carduid)
-	g.RemineCard.initColor(CardColor(Red), &carduid)
+	g.RemineCard.initColor(CardColor(Yellow), &carduid)
+	g.RemineCard.initColor(CardColor(Green), &carduid)
+	g.RemineCard.initColor(CardColor(Blue), &carduid)
 	g.RemineCard.initWild(&carduid)
 
 }
@@ -140,9 +145,14 @@ func (g *UnoGame) AddPlayer() {
 func (g *UnoGame) NextPlayer() {
 	if g.IsForword {
 		g.CurrentPlayer++
+	} else {
+		g.CurrentPlayer--
 	}
 	if g.CurrentPlayer > len(g.Players) {
 		g.CurrentPlayer = 0
+	}
+	if g.CurrentPlayer < 0 {
+		g.CurrentPlayer = len(g.Players) - 1
 	}
 }
 
