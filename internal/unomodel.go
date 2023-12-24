@@ -224,6 +224,13 @@ func (g *UnoGame) Effect(uc *UnoCard) {
 	g.NextPlayer()
 }
 
+// 跳过本轮
+func (g *UnoGame) Skip(player int) {
+	p := g.Players[player]
+	g.dealCard(&p)
+	g.NextPlayer()
+}
+
 // 出牌
 func (g *UnoGame) PlayCard(player int, uc *UnoCard) {
 	p := g.Players[player]
