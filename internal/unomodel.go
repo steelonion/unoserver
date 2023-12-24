@@ -1,5 +1,7 @@
 package internal
 
+import "math/rand"
+
 // CardColor 表示卡牌的颜色
 type CardColor int
 
@@ -51,7 +53,7 @@ func (cs *UnoCardSet) AddCard(uc UnoCard) bool {
 }
 
 // 校验卡牌合法性
-func (cs *UnoCardSet) CheckCard(card UnoCard) bool {
+func (cs *UnoCardSet) CheckCard(card *UnoCard) bool {
 	value, ok := cs.Cards[card.CardIndex]
 	if ok {
 		ok = (card.Value == value.Value && card.Color == value.Color && card.Type == value.Type)
@@ -137,8 +139,9 @@ func (g *UnoGame) Init() {
 }
 
 // 添加玩家
-func (g *UnoGame) AddPlayer() {
-
+func (g *UnoGame) AddPlayer(name string, id int) {
+	p := UnoPlayer{Name: name, ID: id, Index: len(g.Players), CardSet: *(&UnoCardSet{}).New()}
+	g.Players = append(g.Players, p)
 }
 
 // 切换到下一个玩家
@@ -156,13 +159,34 @@ func (g *UnoGame) NextPlayer() {
 	}
 }
 
-// 发牌
-func (g *UnoGame) DealCard(UnoPlayer) {
+func (g *UnoGame) DealCard() {
+	// 重新发牌
+	for i := 0; i < 7; i++ {
+		for _, p := range g.Players {
+			g.dealCard(&p)
+		}
+	}
+}
 
+// 发牌
+func (g *UnoGame) dealCard(p *UnoPlayer) {
+	var keys []int
+	for k := range g.RemineCard.Cards {
+		keys = append(keys, k)
+	}
+
+	randomIndex := rand.Intn(len(keys))
+	selectedKey := keys[randomIndex]
+
+	// 获取相应的卡牌
+	selectedCard, ok := g.RemineCard.RemoveCard(selectedKey)
+	if ok {
+		p.CardSet.AddCard(selectedCard)
+	}
 }
 
 // 检查牌是否符合出牌规则
-func (g *UnoGame) CheckCardLegel(uc UnoCard) bool {
+func (g *UnoGame) CheckCardLegel(uc *UnoCard) bool {
 	if g.LastCard == nil {
 		return true
 	}
@@ -183,7 +207,7 @@ func (g *UnoGame) CheckCardLegel(uc UnoCard) bool {
 }
 
 // 结算出牌效果
-func (g *UnoGame) Effect(uc UnoCard) {
+func (g *UnoGame) Effect(uc *UnoCard) {
 	switch uc.Type {
 	case CardType(WildDrawFour):
 		g.TotalAddCount += 4
@@ -201,7 +225,7 @@ func (g *UnoGame) Effect(uc UnoCard) {
 }
 
 // 出牌
-func (g *UnoGame) PlayCard(player int, uc UnoCard) {
+func (g *UnoGame) PlayCard(player int, uc *UnoCard) {
 	p := g.Players[player]
 	if p.CardSet.CheckCard(uc) {
 		// 检查出牌是否符合规则
