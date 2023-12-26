@@ -82,6 +82,7 @@ type UnoPlayer struct {
 
 // UnoGame 表示一个 UNO 游戏。
 type UnoGame struct {
+	Gaming        bool        // 游戏是否正在进行中
 	Players       []UnoPlayer // 参与游戏的玩家
 	CurrentPlayer int         // 当前准备出牌的玩家
 	DiscardPile   UnoCardSet  // 弃牌堆
@@ -121,8 +122,8 @@ func (s *UnoCardSet) initWild(carduid *int) {
 	}
 }
 
-// 初始化游戏 移除所有玩家 重置牌堆
-func (g *UnoGame) Init() {
+// 重置游戏 移除所有玩家 重置牌堆
+func (g *UnoGame) Reset() {
 	// 清空所有数据
 	g.DiscardPile = *(&UnoCardSet{}).New()
 	g.RemineCard = *(&UnoCardSet{}).New()
@@ -131,6 +132,7 @@ func (g *UnoGame) Init() {
 	g.TotalAddCount = 0
 	g.CurrentPlayer = 0
 	g.Players = []UnoPlayer{}
+	g.Gaming = false
 	//重置牌堆
 	carduid := 0
 	g.RemineCard.initColor(CardColor(Red), &carduid)
@@ -141,10 +143,25 @@ func (g *UnoGame) Init() {
 
 }
 
+// 启动游戏
+func (g *UnoGame) Start() {
+	g.Gaming = true
+	// 重新发牌
+	for i := 0; i < 7; i++ {
+		for _, p := range g.Players {
+			g.dealCard(&p)
+		}
+	}
+}
+
 // 添加玩家
-func (g *UnoGame) AddPlayer(name string, id int) {
+func (g *UnoGame) AddPlayer(name string, id int) error {
+	if g.Gaming {
+		return errors.New("can't join game")
+	}
 	p := UnoPlayer{Name: name, ID: id, Index: len(g.Players), CardSet: *(&UnoCardSet{}).New()}
 	g.Players = append(g.Players, p)
+	return nil
 }
 
 // 切换到下一个玩家
@@ -159,15 +176,6 @@ func (g *UnoGame) NextPlayer() {
 	}
 	if g.CurrentPlayer < 0 {
 		g.CurrentPlayer = len(g.Players) - 1
-	}
-}
-
-func (g *UnoGame) DealCard() {
-	// 重新发牌
-	for i := 0; i < 7; i++ {
-		for _, p := range g.Players {
-			g.dealCard(&p)
-		}
 	}
 }
 
@@ -230,7 +238,14 @@ func (g *UnoGame) Effect(uc *UnoCard) {
 // 跳过本轮
 func (g *UnoGame) Skip(player int) {
 	p := g.Players[player]
+	//获取罚牌
 	g.dealCard(&p)
+	//获取累计罚牌
+	for i := 0; i < g.TotalAddCount; i++ {
+		g.dealCard(&p)
+	}
+	//清空累积
+	g.TotalAddCount = 0
 	g.NextPlayer()
 }
 
