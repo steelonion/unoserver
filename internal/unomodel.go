@@ -82,14 +82,15 @@ type UnoPlayer struct {
 
 // UnoGame 表示一个 UNO 游戏。
 type UnoGame struct {
-	Gaming        bool        // 游戏是否正在进行中
-	Players       []UnoPlayer // 参与游戏的玩家
-	CurrentPlayer int         // 当前准备出牌的玩家
-	DiscardPile   UnoCardSet  // 弃牌堆
-	RemineCard    UnoCardSet  // 剩余的卡牌堆
-	LastCard      *UnoCard    // 上一张出牌的卡片
-	TotalAddCount int         // 总共需要累积的牌数
-	IsForword     bool        // 是否为正向顺序
+	Gaming        bool              // 游戏是否正在进行中
+	Players       []UnoPlayer       // 参与游戏的玩家
+	PlayersMap    map[int]UnoPlayer // 玩家uid字典
+	CurrentPlayer int               // 当前准备出牌的玩家
+	DiscardPile   UnoCardSet        // 弃牌堆
+	RemineCard    UnoCardSet        // 剩余的卡牌堆
+	LastCard      *UnoCard          // 上一张出牌的卡片
+	TotalAddCount int               // 总共需要累积的牌数
+	IsForword     bool              // 是否为正向顺序
 }
 
 func (s *UnoCardSet) initColor(color CardColor, carduid *int) {
@@ -132,6 +133,7 @@ func (g *UnoGame) Reset() {
 	g.TotalAddCount = 0
 	g.CurrentPlayer = 0
 	g.Players = []UnoPlayer{}
+	g.PlayersMap = map[int]UnoPlayer{}
 	g.Gaming = false
 	//重置牌堆
 	carduid := 0
@@ -159,8 +161,13 @@ func (g *UnoGame) AddPlayer(name string, id int) error {
 	if g.Gaming {
 		return errors.New("can't join game")
 	}
+	_, ok := g.PlayersMap[id]
+	if ok {
+		return errors.New("have joined game")
+	}
 	p := UnoPlayer{Name: name, ID: id, Index: len(g.Players), CardSet: *(&UnoCardSet{}).New()}
 	g.Players = append(g.Players, p)
+	g.PlayersMap[id] = p
 	return nil
 }
 
