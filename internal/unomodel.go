@@ -47,10 +47,10 @@ func (cs *UnoCardSet) New() *UnoCardSet {
 }
 
 // 新增卡牌
-func (cs *UnoCardSet) AddCard(uc UnoCard) bool {
+func (cs *UnoCardSet) AddCard(uc *UnoCard) bool {
 	_, ok := cs.Cards[uc.CardIndex]
 	if !ok {
-		cs.Cards[uc.CardIndex] = uc
+		cs.Cards[uc.CardIndex] = *uc
 	}
 	return !ok
 }
@@ -95,29 +95,29 @@ type UnoGame struct {
 func (s *UnoCardSet) initColor(color CardColor, carduid *int) {
 	// 加入数字牌
 	for i := 0; i < 10; i++ {
-		s.AddCard(UnoCard{Color: color, Type: CardType(Number), Value: i, CardIndex: *carduid})
+		s.AddCard(&UnoCard{Color: color, Type: CardType(Number), Value: i, CardIndex: *carduid})
 		*carduid++
 	}
 	for i := 1; i < 10; i++ {
-		s.AddCard(UnoCard{Color: color, Type: CardType(Number), Value: i, CardIndex: *carduid})
+		s.AddCard(&UnoCard{Color: color, Type: CardType(Number), Value: i, CardIndex: *carduid})
 		*carduid++
 	}
 	// 加入特殊牌
 	for i := 0; i < 2; i++ {
-		s.AddCard(UnoCard{Color: color, Type: CardType(Reverse), Value: i, CardIndex: *carduid})
+		s.AddCard(&UnoCard{Color: color, Type: CardType(Reverse), Value: i, CardIndex: *carduid})
 		*carduid++
-		s.AddCard(UnoCard{Color: color, Type: CardType(Skip), Value: i, CardIndex: *carduid})
+		s.AddCard(&UnoCard{Color: color, Type: CardType(Skip), Value: i, CardIndex: *carduid})
 		*carduid++
-		s.AddCard(UnoCard{Color: color, Type: CardType(DrawTwo), Value: i, CardIndex: *carduid})
+		s.AddCard(&UnoCard{Color: color, Type: CardType(DrawTwo), Value: i, CardIndex: *carduid})
 		*carduid++
 	}
 }
 
 func (s *UnoCardSet) initWild(carduid *int) {
 	for i := 0; i < 4; i++ {
-		s.AddCard(UnoCard{Color: CardColor(None), Type: CardType(Wild), Value: i, CardIndex: *carduid})
+		s.AddCard(&UnoCard{Color: CardColor(None), Type: CardType(Wild), Value: i, CardIndex: *carduid})
 		*carduid++
-		s.AddCard(UnoCard{Color: CardColor(None), Type: CardType(WildDrawFour), Value: i, CardIndex: *carduid})
+		s.AddCard(&UnoCard{Color: CardColor(None), Type: CardType(WildDrawFour), Value: i, CardIndex: *carduid})
 		*carduid++
 	}
 }
@@ -192,7 +192,7 @@ func (g *UnoGame) dealCard(p *UnoPlayer) {
 	// 获取相应的卡牌
 	selectedCard, ok := g.RemineCard.RemoveCard(selectedKey)
 	if ok {
-		p.CardSet.AddCard(selectedCard)
+		p.CardSet.AddCard(&selectedCard)
 	}
 }
 
@@ -267,7 +267,7 @@ func (g *UnoGame) PlayCard(player int, uc *UnoCard) error {
 	if ok {
 		g.LastCard = &card
 		//将牌放入弃牌堆中
-		g.DiscardPile.AddCard(card)
+		g.DiscardPile.AddCard(&card)
 	}
 	return nil
 }
