@@ -7,6 +7,7 @@ import (
 	"math/rand"
 	"net/http"
 	"steelonion/unoserver/internal"
+	"strconv"
 )
 
 // 游戏实例表
@@ -99,10 +100,27 @@ func CreateGame(w http.ResponseWriter, r *http.Request) {
 
 func ClearGames(w http.ResponseWriter, r *http.Request) {
 	games = make(map[int]internal.UnoGame)
+	w.WriteHeader(http.StatusOK)
 }
 
 func InitGame(w http.ResponseWriter, r *http.Request) {
-	r.FormValue("gameid")
+	// 通过 r.FormValue 获取表单值
+	valueStr := r.FormValue("gameid")
+	// 尝试将字符串转换为整数
+	id, err := strconv.Atoi(valueStr)
+	if err != nil {
+		// 处理转换错误
+		http.Error(w, "Invalid gameid", http.StatusBadRequest)
+		return
+	}
+	game, ok := games[id]
+	if !ok {
+		// 处理转换错误
+		http.Error(w, "Invalid gameid", http.StatusBadRequest)
+		return
+	}
+	game.Reset()
+	w.WriteHeader(http.StatusOK)
 }
 
 func main() {
@@ -111,6 +129,8 @@ func main() {
 	mux := http.NewServeMux()
 
 	mux.Handle("/manage/game/create", RequestHandler(CreateGame, http.MethodPost))
+	mux.Handle("/manage/game/init", RequestHandler(InitGame, http.MethodPost))
+	mux.Handle("/manage/game/clear", RequestHandler(ClearGames, http.MethodPost))
 
 	// 启动 HTTP 服务器
 	http.ListenAndServe(":8080", mux)
