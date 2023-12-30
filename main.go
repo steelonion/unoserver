@@ -2,7 +2,9 @@ package main
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
+	"math/rand"
 	"net/http"
 	"steelonion/unoserver/internal"
 )
@@ -76,12 +78,39 @@ func MyHandler(w http.ResponseWriter, r *http.Request) {
 	fmt.Fprintf(w, "Hello, User %d!", uid)
 }
 
+func CreateGame(w http.ResponseWriter, r *http.Request) {
+	for {
+		randomNumber := rand.Intn(100)
+		_, ok := games[randomNumber]
+		if !ok {
+			games[randomNumber] = internal.UnoGame{}
+			ret := make(map[string]int)
+			ret["id"] = randomNumber
+			jsonData, err := json.Marshal(ret)
+			if err != nil {
+				http.Error(w, "marshal error", http.StatusInternalServerError)
+				return
+			}
+			w.Write(jsonData)
+			break
+		}
+	}
+}
+
+func ClearGames(w http.ResponseWriter, r *http.Request) {
+	games = make(map[int]internal.UnoGame)
+}
+
+func InitGame(w http.ResponseWriter, r *http.Request) {
+	r.FormValue("gameid")
+}
+
 func main() {
+	games = make(map[int]internal.UnoGame)
 	// 创建一个路由处理器
 	mux := http.NewServeMux()
 
-	// 将中间件应用于所有请求
-	mux.Handle("/", RequestHandler(MyHandler, http.MethodPost))
+	mux.Handle("/manage/game/create", RequestHandler(CreateGame, http.MethodPost))
 
 	// 启动 HTTP 服务器
 	http.ListenAndServe(":8080", mux)
