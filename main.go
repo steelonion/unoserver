@@ -11,14 +11,14 @@ import (
 )
 
 // 游戏实例表
-var games map[int]internal.UnoGame
+var games map[int]*internal.UnoGame
 
 // 中间件函数，用于鉴权
-func AuthMiddleware(w http.ResponseWriter, r *http.Request) bool {
+func AuthMiddleware(w http.ResponseWriter, r *http.Request) (*http.Request, bool) {
 	cookie, err := r.Cookie("Authorization")
 	if err != nil {
 		http.Error(w, "param error", http.StatusBadRequest)
-		return false
+		return nil, false
 	}
 	token := cookie.Value
 
@@ -26,14 +26,14 @@ func AuthMiddleware(w http.ResponseWriter, r *http.Request) bool {
 	uid, err := internal.GetUid(token)
 	if err != nil {
 		http.Error(w, "", http.StatusUnauthorized)
-		return false
+		return nil, false
 	}
 
 	// 将用户 ID 存储到请求的上下文中
 	ctx := r.Context()
 	ctx = context.WithValue(ctx, "uid", uid)
-	r = r.WithContext(ctx)
-	return true
+	newrequest := r.WithContext(ctx)
+	return newrequest, true
 }
 
 // 尝试将任意函数转换为 http.Handler 接口
@@ -54,13 +54,16 @@ func RequestHandler(handler interface{}, method string) http.Handler {
 		panic(err)
 	}
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if r.Method == method {
-			// 调用鉴权中间件
-			if AuthMiddleware(w, r) {
-				// 鉴权通过，调用下一个处理器
-				next.ServeHTTP(w, r)
-				return
-			}
+		if r.Method != method {
+			http.Error(w, "Error method", http.StatusBadRequest)
+		}
+		// 调用鉴权中间件
+		ok := false
+		r, ok = AuthMiddleware(w, r)
+		if ok {
+			// 鉴权通过，调用下一个处理器
+			next.ServeHTTP(w, r)
+			return
 		}
 		// 在其他情况下，返回错误响应
 		http.Error(w, "Unauthorized", http.StatusUnauthorized)
@@ -84,7 +87,8 @@ func CreateGame(w http.ResponseWriter, r *http.Request) {
 		randomNumber := rand.Intn(100)
 		_, ok := games[randomNumber]
 		if !ok {
-			games[randomNumber] = internal.UnoGame{}
+			games[randomNumber] = &internal.UnoGame{}
+			games[randomNumber].Reset()
 			ret := make(map[string]int)
 			ret["id"] = randomNumber
 			jsonData, err := json.Marshal(ret)
@@ -99,13 +103,13 @@ func CreateGame(w http.ResponseWriter, r *http.Request) {
 }
 
 func ClearGames(w http.ResponseWriter, r *http.Request) {
-	games = make(map[int]internal.UnoGame)
+	games = make(map[int]*internal.UnoGame)
 	w.WriteHeader(http.StatusOK)
 }
 
 func GetGame(w http.ResponseWriter, r *http.Request) *internal.UnoGame {
 	// 通过 r.FormValue 获取表单值
-	valueStr := r.FormValue("gameid")
+	valueStr := r.URL.Query().Get("gameid")
 	// 尝试将字符串转换为整数
 	id, err := strconv.Atoi(valueStr)
 	if err != nil {
@@ -119,18 +123,24 @@ func GetGame(w http.ResponseWriter, r *http.Request) *internal.UnoGame {
 		http.Error(w, "Invalid gameid", http.StatusBadRequest)
 		return nil
 	}
-	return &game
+	return game
 }
 
 func InitGame(w http.ResponseWriter, r *http.Request) {
 
 	game := GetGame(w, r)
+	if game == nil {
+		return
+	}
 	game.Reset()
 	w.WriteHeader(http.StatusOK)
 }
 
 func StartGame(w http.ResponseWriter, r *http.Request) {
 	game := GetGame(w, r)
+	if game == nil {
+		return
+	}
 	game.Start()
 	w.WriteHeader(http.StatusOK)
 }
@@ -144,12 +154,12 @@ func GetCards(w http.ResponseWriter, r *http.Request) {
 	}
 	game := GetGame(w, r)
 	if game == nil {
-		http.Error(w, "无法获取游戏", http.StatusInternalServerError)
 		return
 	}
 	set, err := game.GetCards(uid)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
 	}
 	ret := make(map[string]interface{})
 	ret["cards"] = *set
@@ -169,14 +179,13 @@ func JoinGame(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "无法获取用户 ID", http.StatusInternalServerError)
 		return
 	}
-	playername := r.FormValue("name")
+	playername := r.URL.Query().Get("name")
 	if playername == "" {
 		http.Error(w, "name empty", http.StatusBadRequest)
 		return
 	}
 	game := GetGame(w, r)
 	if game == nil {
-		http.Error(w, "无法获取游戏", http.StatusInternalServerError)
 		return
 	}
 	err := game.AddPlayer(playername, uid)
@@ -188,7 +197,7 @@ func JoinGame(w http.ResponseWriter, r *http.Request) {
 }
 
 func main() {
-	games = make(map[int]internal.UnoGame)
+	games = make(map[int]*internal.UnoGame)
 	// 创建一个路由处理器
 	mux := http.NewServeMux()
 

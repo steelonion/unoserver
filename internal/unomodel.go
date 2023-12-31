@@ -133,7 +133,7 @@ func (g *UnoGame) Reset() {
 	g.TotalAddCount = 0
 	g.CurrentPlayer = 0
 	g.Players = []UnoPlayer{}
-	g.PlayersMap = map[int]UnoPlayer{}
+	g.PlayersMap = make(map[int]UnoPlayer)
 	g.Gaming = false
 	//重置牌堆
 	carduid := 0
@@ -243,8 +243,11 @@ func (g *UnoGame) Effect(uc *UnoCard) {
 }
 
 // 跳过本轮
-func (g *UnoGame) Skip(player int) {
-	p := g.Players[player]
+func (g *UnoGame) Skip(uid int) error {
+	p, ok := g.PlayersMap[uid]
+	if !ok {
+		return errors.New("player not found")
+	}
 	//获取罚牌
 	g.dealCard(&p)
 	//获取累计罚牌
@@ -254,23 +257,28 @@ func (g *UnoGame) Skip(player int) {
 	//清空累积
 	g.TotalAddCount = 0
 	g.NextPlayer()
+	return nil
 }
 
 // 获取用户手牌
-func (g *UnoGame) GetCards(player int) (*UnoCardSet, error) {
-	if g.CurrentPlayer != player {
-		return nil, errors.New("not your turn")
+func (g *UnoGame) GetCards(uid int) (*UnoCardSet, error) {
+	p, ok := g.PlayersMap[uid]
+	if !ok {
+		return nil, errors.New("player not found")
 	}
-	p := g.Players[player]
 	return &p.CardSet, nil
 }
 
 // 出牌
-func (g *UnoGame) PlayCard(player int, uc *UnoCard) error {
-	if g.CurrentPlayer != player {
+func (g *UnoGame) PlayCard(uid int, uc *UnoCard) error {
+	p, ok := g.PlayersMap[uid]
+	if !ok {
+		return errors.New("player not found")
+	}
+
+	if g.CurrentPlayer != p.Index {
 		return errors.New("not your turn")
 	}
-	p := g.Players[player]
 	// 检查卡牌是否存在
 	if !p.CardSet.CheckCard(uc) {
 		return errors.New("card not found")
