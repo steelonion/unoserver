@@ -256,6 +256,15 @@ func (g *UnoGame) Skip(player int) {
 	g.NextPlayer()
 }
 
+// 获取用户手牌
+func (g *UnoGame) GetCards(player int) (*UnoCardSet, error) {
+	if g.CurrentPlayer != player {
+		return nil, errors.New("not your turn")
+	}
+	p := g.Players[player]
+	return &p.CardSet, nil
+}
+
 // 出牌
 func (g *UnoGame) PlayCard(player int, uc *UnoCard) error {
 	if g.CurrentPlayer != player {

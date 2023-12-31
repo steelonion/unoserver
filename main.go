@@ -103,7 +103,7 @@ func ClearGames(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusOK)
 }
 
-func InitGame(w http.ResponseWriter, r *http.Request) {
+func GetGame(w http.ResponseWriter, r *http.Request) *internal.UnoGame {
 	// 通过 r.FormValue 获取表单值
 	valueStr := r.FormValue("gameid")
 	// 尝试将字符串转换为整数
@@ -111,15 +111,79 @@ func InitGame(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		// 处理转换错误
 		http.Error(w, "Invalid gameid", http.StatusBadRequest)
-		return
+		return nil
 	}
 	game, ok := games[id]
 	if !ok {
 		// 处理转换错误
 		http.Error(w, "Invalid gameid", http.StatusBadRequest)
+		return nil
+	}
+	return &game
+}
+
+func InitGame(w http.ResponseWriter, r *http.Request) {
+
+	game := GetGame(w, r)
+	game.Reset()
+	w.WriteHeader(http.StatusOK)
+}
+
+func StartGame(w http.ResponseWriter, r *http.Request) {
+	game := GetGame(w, r)
+	game.Start()
+	w.WriteHeader(http.StatusOK)
+}
+
+func GetCards(w http.ResponseWriter, r *http.Request) {
+	// 从上下文中获取用户 ID
+	uid, ok := r.Context().Value("uid").(int)
+	if !ok {
+		http.Error(w, "无法获取用户 ID", http.StatusInternalServerError)
 		return
 	}
-	game.Reset()
+	game := GetGame(w, r)
+	if game == nil {
+		http.Error(w, "无法获取游戏", http.StatusInternalServerError)
+		return
+	}
+	set, err := game.GetCards(uid)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+	}
+	ret := make(map[string]interface{})
+	ret["cards"] = *set
+	ret["uid"] = uid
+	jsonData, err := json.Marshal(ret)
+	if err != nil {
+		http.Error(w, "marshal error", http.StatusInternalServerError)
+		return
+	}
+	w.Write(jsonData)
+}
+
+func JoinGame(w http.ResponseWriter, r *http.Request) {
+	// 从上下文中获取用户 ID
+	uid, ok := r.Context().Value("uid").(int)
+	if !ok {
+		http.Error(w, "无法获取用户 ID", http.StatusInternalServerError)
+		return
+	}
+	playername := r.FormValue("name")
+	if playername == "" {
+		http.Error(w, "name empty", http.StatusBadRequest)
+		return
+	}
+	game := GetGame(w, r)
+	if game == nil {
+		http.Error(w, "无法获取游戏", http.StatusInternalServerError)
+		return
+	}
+	err := game.AddPlayer(playername, uid)
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
 	w.WriteHeader(http.StatusOK)
 }
 
@@ -128,9 +192,15 @@ func main() {
 	// 创建一个路由处理器
 	mux := http.NewServeMux()
 
+	//控制方法
 	mux.Handle("/manage/game/create", RequestHandler(CreateGame, http.MethodPost))
 	mux.Handle("/manage/game/init", RequestHandler(InitGame, http.MethodPost))
 	mux.Handle("/manage/game/clear", RequestHandler(ClearGames, http.MethodPost))
+	mux.Handle("/manage/game/start", RequestHandler(StartGame, http.MethodPost))
+
+	//玩家方法
+	mux.Handle("/player/game/join", RequestHandler(JoinGame, http.MethodPost))
+	mux.Handle("/player/game/getcards", RequestHandler(GetCards, http.MethodGet))
 
 	// 启动 HTTP 服务器
 	http.ListenAndServe(":8080", mux)
