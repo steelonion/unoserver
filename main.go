@@ -56,6 +56,7 @@ func RequestHandler(handler interface{}, method string) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != method {
 			http.Error(w, "Error method", http.StatusBadRequest)
+			return
 		}
 		// 调用鉴权中间件
 		ok := false
@@ -196,6 +197,72 @@ func JoinGame(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusOK)
 }
 
+func GetGameInfo(w http.ResponseWriter, r *http.Request) {
+	// 从上下文中获取用户 ID
+	_, ok := r.Context().Value("uid").(int)
+	if !ok {
+		http.Error(w, "无法获取用户 ID", http.StatusInternalServerError)
+		return
+	}
+	game := GetGame(w, r)
+	if game == nil {
+		return
+	}
+	ret := make(map[string]interface{})
+	ret["isForword"] = game.IsForword
+	ret["isGaming"] = game.Gaming
+	if game.LastCard == nil {
+		ret["lastCard"] = nil
+	} else {
+		ret["lastCard"] = *game.LastCard
+	}
+	ret["totalAddCount"] = game.TotalAddCount
+
+	ret["currentPlayerIndex"] = game.CurrentPlayer
+	ret["players"] = make(map[int]interface{})
+	for i := 0; i < len(game.Players); i++ {
+		p := game.Players[i]
+		pi := make(map[string]interface{})
+		pi["uid"] = p.ID
+		pi["name"] = p.Name
+		pi["index"] = p.Index
+		pi["cardCount"] = len(p.CardSet.Cards)
+		ret["players"].(map[int]interface{})[p.ID] = pi
+	}
+	jsonData, err := json.Marshal(ret)
+	if err != nil {
+		http.Error(w, "marshal error", http.StatusInternalServerError)
+		return
+	}
+	w.Write(jsonData)
+}
+
+func PlayCard(w http.ResponseWriter, r *http.Request) {
+	// 从上下文中获取用户 ID
+	uid, ok := r.Context().Value("uid").(int)
+	if !ok {
+		http.Error(w, "无法获取用户 ID", http.StatusInternalServerError)
+		return
+	}
+	game := GetGame(w, r)
+	if game == nil {
+		return
+	}
+	uciStr := r.URL.Query().Get("uci")
+	uci, err := strconv.Atoi(uciStr)
+	if err != nil {
+		// 处理转换错误
+		http.Error(w, "Invalid uci", http.StatusBadRequest)
+		return
+	}
+	err = game.PlayCard(uid, uci)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+	w.WriteHeader(http.StatusOK)
+}
+
 func main() {
 	games = make(map[int]*internal.UnoGame)
 	// 创建一个路由处理器
@@ -210,6 +277,8 @@ func main() {
 	//玩家方法
 	mux.Handle("/player/game/join", RequestHandler(JoinGame, http.MethodPost))
 	mux.Handle("/player/game/getcards", RequestHandler(GetCards, http.MethodGet))
+	mux.Handle("/player/game/getgameinfo", RequestHandler(GetGameInfo, http.MethodGet))
+	mux.Handle("/player/game/playcard", RequestHandler(PlayCard, http.MethodPost))
 
 	// 启动 HTTP 服务器
 	http.ListenAndServe(":8080", mux)

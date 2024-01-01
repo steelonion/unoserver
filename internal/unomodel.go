@@ -56,12 +56,9 @@ func (cs *UnoCardSet) AddCard(uc *UnoCard) bool {
 }
 
 // 校验卡牌合法性
-func (cs *UnoCardSet) CheckCard(card *UnoCard) bool {
-	value, ok := cs.Cards[card.CardIndex]
-	if ok {
-		ok = (card.Value == value.Value && card.Color == value.Color && card.Type == value.Type)
-	}
-	return ok
+func (cs *UnoCardSet) CheckCard(uci int) (*UnoCard, bool) {
+	value, ok := cs.Cards[uci]
+	return &value, ok
 }
 
 // 移除卡牌
@@ -270,7 +267,7 @@ func (g *UnoGame) GetCards(uid int) (*UnoCardSet, error) {
 }
 
 // 出牌
-func (g *UnoGame) PlayCard(uid int, uc *UnoCard) error {
+func (g *UnoGame) PlayCard(uid int, uci int) error {
 	p, ok := g.PlayersMap[uid]
 	if !ok {
 		return errors.New("player not found")
@@ -280,7 +277,8 @@ func (g *UnoGame) PlayCard(uid int, uc *UnoCard) error {
 		return errors.New("not your turn")
 	}
 	// 检查卡牌是否存在
-	if !p.CardSet.CheckCard(uc) {
+	uc, ok := p.CardSet.CheckCard(uci)
+	if !ok {
 		return errors.New("card not found")
 	}
 	// 检查出牌是否符合规则
