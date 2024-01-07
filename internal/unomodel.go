@@ -288,6 +288,8 @@ func (g *UnoGame) PlayCard(uid int, uci int) error {
 	card, ok := p.CardSet.RemoveCard(uc.CardIndex)
 	if ok {
 		g.LastCard = &card
+		//执行卡牌效果
+		g.Effect(&card)
 		//将牌放入弃牌堆中
 		g.DiscardPile.AddCard(&card)
 	}
