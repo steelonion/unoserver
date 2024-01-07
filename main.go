@@ -66,21 +66,22 @@ func RequestHandler(handler interface{}, method string) http.Handler {
 }
 
 func main() {
-	games = make(map[int]*internal.UnoGame)
+	gm := &internal.GameManager{}
+	gm.Init()
 	// 创建一个路由处理器
 	mux := http.NewServeMux()
 
 	//控制方法
-	mux.Handle("/manage/game/create", RequestHandler(CreateGame, http.MethodPost))
-	mux.Handle("/manage/game/init", RequestHandler(InitGame, http.MethodPost))
-	mux.Handle("/manage/game/clear", RequestHandler(ClearGames, http.MethodPost))
-	mux.Handle("/manage/game/start", RequestHandler(StartGame, http.MethodPost))
+	mux.Handle("/manage/game/create", RequestHandler(gm.CreateGame, http.MethodPost))
+	mux.Handle("/manage/game/init", RequestHandler(gm.InitGame, http.MethodPost))
+	mux.Handle("/manage/game/clear", RequestHandler(gm.ClearGames, http.MethodPost))
+	mux.Handle("/manage/game/start", RequestHandler(gm.StartGame, http.MethodPost))
 
 	//玩家方法
-	mux.Handle("/player/game/join", RequestHandler(JoinGame, http.MethodPost))
-	mux.Handle("/player/game/getcards", RequestHandler(GetCards, http.MethodGet))
-	mux.Handle("/player/game/getgameinfo", RequestHandler(GetGameInfo, http.MethodGet))
-	mux.Handle("/player/game/playcard", RequestHandler(PlayCard, http.MethodPost))
+	mux.Handle("/player/game/join", RequestHandler(gm.JoinGame, http.MethodPost))
+	mux.Handle("/player/game/getcards", RequestHandler(gm.GetCards, http.MethodGet))
+	mux.Handle("/player/game/getgameinfo", RequestHandler(gm.GetGameInfo, http.MethodGet))
+	mux.Handle("/player/game/playcard", RequestHandler(gm.PlayCard, http.MethodPost))
 
 	// 启动 HTTP 服务器
 	http.ListenAndServe(":8080", mux)

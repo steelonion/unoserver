@@ -7,16 +7,22 @@ import (
 	"strconv"
 )
 
-// 游戏实例表
-var games map[int]*UnoGame
+type GameManager struct {
+	// 游戏实例表
+	games map[int]*UnoGame
+}
 
-func CreateGame(w http.ResponseWriter, r *http.Request) {
+func (gm *GameManager) Init() {
+	gm.games = make(map[int]*UnoGame)
+}
+
+func (gm *GameManager) CreateGame(w http.ResponseWriter, r *http.Request) {
 	for {
 		randomNumber := rand.Intn(100)
-		_, ok := games[randomNumber]
+		_, ok := gm.games[randomNumber]
 		if !ok {
-			games[randomNumber] = &UnoGame{}
-			games[randomNumber].Reset()
+			gm.games[randomNumber] = &UnoGame{}
+			gm.games[randomNumber].Reset()
 			ret := make(map[string]int)
 			ret["id"] = randomNumber
 			jsonData, err := json.Marshal(ret)
@@ -30,12 +36,12 @@ func CreateGame(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func ClearGames(w http.ResponseWriter, r *http.Request) {
-	games = make(map[int]*UnoGame)
+func (gm *GameManager) ClearGames(w http.ResponseWriter, r *http.Request) {
+	gm.games = make(map[int]*UnoGame)
 	w.WriteHeader(http.StatusOK)
 }
 
-func GetGame(w http.ResponseWriter, r *http.Request) *UnoGame {
+func (gm *GameManager) GetGame(w http.ResponseWriter, r *http.Request) *UnoGame {
 	// 通过 r.FormValue 获取表单值
 	valueStr := r.URL.Query().Get("gameid")
 	// 尝试将字符串转换为整数
@@ -45,7 +51,7 @@ func GetGame(w http.ResponseWriter, r *http.Request) *UnoGame {
 		http.Error(w, "Invalid gameid", http.StatusBadRequest)
 		return nil
 	}
-	game, ok := games[id]
+	game, ok := gm.games[id]
 	if !ok {
 		// 处理转换错误
 		http.Error(w, "Invalid gameid", http.StatusBadRequest)
@@ -54,9 +60,9 @@ func GetGame(w http.ResponseWriter, r *http.Request) *UnoGame {
 	return game
 }
 
-func InitGame(w http.ResponseWriter, r *http.Request) {
+func (gm *GameManager) InitGame(w http.ResponseWriter, r *http.Request) {
 
-	game := GetGame(w, r)
+	game := gm.GetGame(w, r)
 	if game == nil {
 		return
 	}
@@ -64,8 +70,8 @@ func InitGame(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusOK)
 }
 
-func StartGame(w http.ResponseWriter, r *http.Request) {
-	game := GetGame(w, r)
+func (gm *GameManager) StartGame(w http.ResponseWriter, r *http.Request) {
+	game := gm.GetGame(w, r)
 	if game == nil {
 		return
 	}
@@ -73,14 +79,14 @@ func StartGame(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusOK)
 }
 
-func GetCards(w http.ResponseWriter, r *http.Request) {
+func (gm *GameManager) GetCards(w http.ResponseWriter, r *http.Request) {
 	// 从上下文中获取用户 ID
 	uid, ok := r.Context().Value("uid").(int)
 	if !ok {
 		http.Error(w, "无法获取用户 ID", http.StatusInternalServerError)
 		return
 	}
-	game := GetGame(w, r)
+	game := gm.GetGame(w, r)
 	if game == nil {
 		return
 	}
@@ -100,7 +106,7 @@ func GetCards(w http.ResponseWriter, r *http.Request) {
 	w.Write(jsonData)
 }
 
-func JoinGame(w http.ResponseWriter, r *http.Request) {
+func (gm *GameManager) JoinGame(w http.ResponseWriter, r *http.Request) {
 	// 从上下文中获取用户 ID
 	uid, ok := r.Context().Value("uid").(int)
 	if !ok {
@@ -112,7 +118,7 @@ func JoinGame(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "name empty", http.StatusBadRequest)
 		return
 	}
-	game := GetGame(w, r)
+	game := gm.GetGame(w, r)
 	if game == nil {
 		return
 	}
@@ -124,14 +130,14 @@ func JoinGame(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusOK)
 }
 
-func GetGameInfo(w http.ResponseWriter, r *http.Request) {
+func (gm *GameManager) GetGameInfo(w http.ResponseWriter, r *http.Request) {
 	// 从上下文中获取用户 ID
 	_, ok := r.Context().Value("uid").(int)
 	if !ok {
 		http.Error(w, "无法获取用户 ID", http.StatusInternalServerError)
 		return
 	}
-	game := GetGame(w, r)
+	game := gm.GetGame(w, r)
 	if game == nil {
 		return
 	}
@@ -164,14 +170,14 @@ func GetGameInfo(w http.ResponseWriter, r *http.Request) {
 	w.Write(jsonData)
 }
 
-func PlayCard(w http.ResponseWriter, r *http.Request) {
+func (gm *GameManager) PlayCard(w http.ResponseWriter, r *http.Request) {
 	// 从上下文中获取用户 ID
 	uid, ok := r.Context().Value("uid").(int)
 	if !ok {
 		http.Error(w, "无法获取用户 ID", http.StatusInternalServerError)
 		return
 	}
-	game := GetGame(w, r)
+	game := gm.GetGame(w, r)
 	if game == nil {
 		return
 	}
