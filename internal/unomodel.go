@@ -38,11 +38,11 @@ type UnoCard struct {
 
 // 卡牌堆
 type UnoCardSet struct {
-	Cards map[int]UnoCard
+	Cards map[int]*UnoCard
 }
 
 func (cs *UnoCardSet) New() *UnoCardSet {
-	cs.Cards = map[int]UnoCard{}
+	cs.Cards = map[int]*UnoCard{}
 	return cs
 }
 
@@ -50,7 +50,7 @@ func (cs *UnoCardSet) New() *UnoCardSet {
 func (cs *UnoCardSet) AddCard(uc *UnoCard) bool {
 	_, ok := cs.Cards[uc.CardIndex]
 	if !ok {
-		cs.Cards[uc.CardIndex] = *uc
+		cs.Cards[uc.CardIndex] = uc
 	}
 	return !ok
 }
@@ -58,11 +58,11 @@ func (cs *UnoCardSet) AddCard(uc *UnoCard) bool {
 // 校验卡牌合法性
 func (cs *UnoCardSet) CheckCard(uci int) (*UnoCard, bool) {
 	value, ok := cs.Cards[uci]
-	return &value, ok
+	return value, ok
 }
 
 // 移除卡牌
-func (cs *UnoCardSet) RemoveCard(index int) (UnoCard, bool) {
+func (cs *UnoCardSet) RemoveCard(index int) (*UnoCard, bool) {
 	value, ok := cs.Cards[index]
 	if ok {
 		delete(cs.Cards, index)
@@ -185,6 +185,16 @@ func (g *UnoGame) NextPlayer() {
 
 // 发牌
 func (g *UnoGame) dealCard(p *UnoPlayer) {
+	//检查是否需要重新洗牌
+	if len(g.RemineCard.Cards) == 0 {
+		//将弃牌洗入牌堆
+		for k := range g.DiscardPile.Cards {
+			c, ok := g.DiscardPile.RemoveCard(k)
+			if ok {
+				g.RemineCard.AddCard(c)
+			}
+		}
+	}
 	var keys []int
 	for k := range g.RemineCard.Cards {
 		keys = append(keys, k)
@@ -196,7 +206,7 @@ func (g *UnoGame) dealCard(p *UnoPlayer) {
 	// 获取相应的卡牌
 	selectedCard, ok := g.RemineCard.RemoveCard(selectedKey)
 	if ok {
-		p.CardSet.AddCard(&selectedCard)
+		p.CardSet.AddCard(selectedCard)
 	}
 }
 
@@ -287,11 +297,11 @@ func (g *UnoGame) PlayCard(uid int, uci int) error {
 	}
 	card, ok := p.CardSet.RemoveCard(uc.CardIndex)
 	if ok {
-		g.LastCard = &card
+		g.LastCard = card
 		//执行卡牌效果
-		g.Effect(&card)
+		g.Effect(card)
 		//将牌放入弃牌堆中
-		g.DiscardPile.AddCard(&card)
+		g.DiscardPile.AddCard(card)
 	}
 	return nil
 }
